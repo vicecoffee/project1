@@ -1,9 +1,10 @@
 import os
 
-from flask import Flask, session
+from flask import Flask, session, request, render_template
 from flask_session import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
+from helpers import apology, login_required, weather
 
 app = Flask(__name__)
 
@@ -20,7 +21,6 @@ Session(app)
 engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
 
-@login_required
 
 @app.route("/")
 def index():
@@ -116,8 +116,9 @@ def logout():
     # Redirect user to login form
     return redirect("/")
 
-@app.route("/location", methods=["GET", "POST"])
-def location():
+@app.route("/location/<string:loc_id>", methods=["GET", "POST"])
+# @login_required
+def location(loc_id):
     # User reached route via POST
     if request.method == "POST":
         # Same as "GET: table for location info & darksky BUT disable FORMS
@@ -129,4 +130,13 @@ def location():
         # Pull info from location table insert in HTML
         # Don't forget to make a form for checkin
         # Pull info from Darksky insert in HTML
-        return render_template("location.html")
+        result = db.execute("SELECT latitude,longitude, town FROM locations WHERE loc_id=:lid", {"lid": loc_id})
+        if result.rowcount < 1:
+            return apology("sorry that town must not be in the database")
+        for rows in result:
+            latitude = rows[0]
+            longitude = rows[1]
+            town = rows[2]
+        local_weather = weather(latitude, longitude)
+        return "Town is {} and weather is {}".format(town,local_weather)
+        #return render_template("location.html")
