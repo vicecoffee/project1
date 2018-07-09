@@ -1,1 +1,18 @@
-extends index.html
+
+{% extends "layout.html" %}
+
+{% block title %}
+Location
+{% endblock %}
+
+{% block main %}
+
+
+
+       <h2>Welcome to beautiful <bold>{{location_dict.place_name}}, {{location_dict.state}}</bold>!</h2>
+        <p>{{location_dict.population}} people live here.</p>
+        <p><bold>{{location_dict.check_ins}}</bold> users have checked in "foursquare-style".</p>
+
+
+
+{% endblock %}

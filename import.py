@@ -5,7 +5,7 @@ from cs50 import SQL
 db= SQL("postgres://vqhlwxbowulgoc:b44290dbb0843fe951312cf0dfa960092dd6c84ddf11dd105f0f01796e1cc688@ec2-23-23-220-19.compute-1.amazonaws.com:5432/d888fp495haud5")
 f= open("zips.csv")
 reader = csv.reader(f)
-# https://stackoverflow.com/questions/11349333/when-processing-csv-data-how-do-i-ignore-the-first-line-of-data
+#
 next(reader)
 # I tested the import with a dummy command and it populated until 318. I deleted those entries.
 for row in reader:

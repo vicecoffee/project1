@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Search Results
+{% endblock %}
+
+{% block main %}
+    <p>
+    {% for location in list %}
+        <li>{{location.town}}, {{location.state}} {{location.zipcode}}</li>
+        {% endfor %}
+    </p>
+{% endblock %}
