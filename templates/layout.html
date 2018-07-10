@@ -10,7 +10,7 @@
 
         <!-- documentation at http://getbootstrap.com/docs/4.0/, alternative themes at https://bootswatch.com/4-alpha/ -->
         <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" rel="stylesheet"/>
-
+        <link rel="stylesheet" href="/project01bootstrap-4.0.0/dist/css/bootstrap.css"/>
         <link href="/static/styles.css" rel="stylesheet"/>
 
         <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
@@ -31,19 +31,16 @@
             <div class="collapse navbar-collapse" id="navbar">
                 {% if session.user_id %}
                     <ul class="navbar-nav ml-auto mt-2">
-                        <li class="nav-item"><a class="nav-link" href="/search">Search</a></li>
+                        <li class="nav-item">
+                        <form action="/search_results" method="post">
+                            <div class="form-inline my-2 my-lg-0">
+                                <input autocomplete="off" autofocus class="form-control" name="search_input" placeholder="zipcode or town name" type="text"/>
+                            <button class="btn btn-primary my-2 my-sm-0" type="submit">Search</button>
+                        </div>
+                        </form>
+                        </li>
                         <li class="nav-item"><a class="nav-link" href="/logout">Log Out</a></li>
                     </ul>
-
-                    <div>
-                        <form action="/search_results" method="post">
-                            <div class="form-group">
-                                <input autocomplete="off" autofocus class="form-control" name="search_input" placeholder="zipcode or town name" type="text"/>
-                            </div>
-
-                            <button class="btn btn-primary" type="submit">Search</button>
-                        </form>
-                    </div>
 
 
                 {% else %}

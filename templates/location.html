@@ -10,9 +10,37 @@ Location
 
 
        <h2>Welcome to beautiful <bold>{{location_dict.place_name}}, {{location_dict.state}}</bold>!</h2>
-        <p>{{location_dict.population}} people live here.</p>
+        <p>{{location_dict.population|commanumber}} people live here.</p>
         <p><bold>{{location_dict.check_ins}}</bold> users have checked in "foursquare-style".</p>
+        <p> Would you like to Check in and leave a comment?
+            <form action="/location" method="post">
+                <div class="form-group">
+                    <input autocomplete="off" autofocus class="form-control" name="comment" placeholder="Comment Optional" type="text"/>
+                </div>
 
+                <button class="btn btn-primary" type="submit">Check-in</button>
+            </form>
 
+        </p>
+        <p>Local Time: <bold><datetime>{{location_dict.weather.time|time}}</bold></datetime></p>
+        <p>The weather in  {{location_dict.place_name}}, {{location_dict.state}} is {{location_dict.weather.summary}}</p>
+
+        <div class="container">
+            <div class="row">
+                <div class="col-sm">temp
+            </div>
+                <div class="col-sm">dew point
+            </div>
+                <div class="col-sm">humidity
+            </div>
+            </div>
+        <div class="row">
+                <div class="col-sm">{{location_dict.weather.temperature}}
+            </div>
+        <div class="col-sm">{{location_dict.weather.dewPoint}}
+            </div>
+        <div class="col-sm">{{location_dict.weather.humidity|decimalpercent}}
+        </div>
+        </div>
 
 {% endblock %}

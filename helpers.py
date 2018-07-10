@@ -3,6 +3,7 @@ import csv
 import os
 import urllib.request
 import requests, json
+from time import localtime, asctime
 
 from flask import redirect, render_template, request, session
 from functools import wraps
@@ -48,11 +49,24 @@ def make_darksky_url(latitude, longitude):
     print (specialstuff)
     return specialstuff
 
-
+# I took away json.dumps so it could be an object
 def weather(latitude, longtiude):
     api_url = make_darksky_url(latitude, longtiude)
     local_weather = requests.get(api_url).json()
-    return (json.dumps(local_weather["currently"], indent = 2))
+    return (local_weather["currently"])
+
+# Changes the DarkSky epoch time to regular time
+# https://docs.python.org/3/library/time.html
+def time(value):
+    return asctime(localtime(value))
+
+#https://www.w3resource.com/python-exercises/string/python-data-type-string-exercise-35.php
+def commanumber(value):
+    return ("{:,}".format(value))
+
+#https://www.w3resource.com/python-exercises/string/python-data-type-string-exercise-36.php
+def decimalpercent(value):
+    return ("{:.0%}".format(value))
 
 
 

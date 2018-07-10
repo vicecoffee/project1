@@ -7,7 +7,7 @@
 {% block main %}
     <p>
     {% for location in list %}
-        <li>{{location.town}}, {{location.state}} {{location.zipcode}}</li>
+        <a href="/location/{{location.zipcode}}">{{location.town}}, {{location.state}} {{location.zipcode}}</a>
         {% endfor %}
     </p>
 {% endblock %}

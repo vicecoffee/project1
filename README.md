@@ -5,6 +5,10 @@ Web Programming with Python and JavaScript
 DarkSky API
 9c102d141a42e76829cf376926f239db
 
+Google Maps API
+
+export API_KEY=AIzaSyA9E7fqAbUSR_e3SOWirLbtrpvDisI_gDY
+
 import requests
 weather = requests.get("https://api.darksky.net/forecast/9c102d141a42e76829cf376926f239db/42.37,-71.11").json()
 print(weather["currently"])

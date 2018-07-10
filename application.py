@@ -2,11 +2,13 @@ import os
 
 from flask import Flask, session, request, render_template, redirect
 from flask_session import Session
+from tempfile import mkdtemp
 from sqlalchemy import create_engine, Table, Column, Integer, String, ForeignKey, select
 from sqlalchemy.orm import scoped_session, sessionmaker
 from werkzeug.exceptions import default_exceptions
 from werkzeug.security import check_password_hash, generate_password_hash
-from helpers import apology, login_required, weather
+from helpers import apology, login_required, weather, time, commanumber, decimalpercent
+import json
 
 app = Flask(__name__)
 
@@ -15,14 +17,29 @@ if not os.getenv("DATABASE_URL"):
     raise RuntimeError("DATABASE_URL is not set")
 
 # Configure session to use filesystem
+app.config["SESSION_FILE_DIR"] = mkdtemp()
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
+
+# Ensure responses aren't cached
+
+
+@app.after_request
+def after_request(response):
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Expires"] = 0
+    response.headers["Pragma"] = "no-cache"
+    return response
 
 # Set up database
 engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
 
+# Custom filter
+app.jinja_env.filters["time"] = time
+app.jinja_env.filters["commanumber"] = commanumber
+app.jinja_env.filters["decimalpercent"] = decimalpercent
 
 @app.route("/")
 def index():
@@ -79,7 +96,7 @@ def register():
 
 @app.route("/search_results", methods=["GET", "POST"])
 def search():
-    rows = db.execute("SELECT * FROM locations WHERE town = :search_input", {"search_input":request.form.get("search_input")}).fetchall()
+    rows = db.execute("SELECT * FROM locations WHERE town = :search_input OR zipcode = :search_input", {"search_input":request.form.get("search_input")}).fetchall()
     search_results_list =[]
     for row in rows:
         town = row["town"]
@@ -99,27 +116,25 @@ def login():
     if request.method == "POST":
 
         # Ensure username was submitted
-        if not request.form.get("username"):
+        if not request.form.get("user_name"):
             return apology("must provide username", 403)
 
         # Ensure password was submitted
-        elif not request.form.get("password"):
+        if not request.form.get("password"):
             return apology("must provide password", 403)
 
         # Query database for username
-        result = db.execute("SELECT * FROM users WHERE username = :username",
-                          {username:request.form.get("username")})
+        row = db.execute("SELECT * FROM users WHERE user_name = :user_name", {"user_name":request.form.get("user_name")}).fetchall()
 
         # Ensure username exists and password is correct
-        if result.rowcount != 1:
-            return apology("invalid username and/or password", 403)
+        if len(row) != 1:
+            return apology("No such username or password.  Please register", 403)
 
-        row = result.fetchone()
-        if check_password_hash(row["hash"], request.form.get("password")):
+        if not check_password_hash(row[0]["hash"], request.form.get("password")):
             return apology("invalid username and/or password", 403)
 
         # Remember which user has logged in
-        session["user_id"] = row.user_id
+        session["user_id"] = row[0]["user_id"]
         print(session["user_id"])
 
         # Redirect user to home page
@@ -155,9 +170,10 @@ def location(zipcode):
 
         return render_template("location.html",location_dict = get_zipcode_weather(zipcode))
 
+# Added the json dumps here to reformat the weather into a string
 @app.route("/api/<string:zipcode>")
 def api(zipcode):
-    return "{}".format(get_zipcode_weather(zipcode))
+    return json.dumps(get_zipcode_weather(zipcode), indent = 2)
 
 
 def get_zipcode_weather(zipcode):
@@ -170,6 +186,7 @@ def get_zipcode_weather(zipcode):
         "longitude": row["longitude"],
         "zip": row["zipcode"],
         "population": row["population"],
-        "check_ins": row["checkin_count"]
+        "check_ins": row["checkin_count"],
+        "weather":weather(row["latitude"], row["longitude"])
 
     }
