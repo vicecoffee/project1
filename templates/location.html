@@ -11,9 +11,19 @@ Location
 
        <h2>Welcome to beautiful <bold>{{location_dict.place_name}}, {{location_dict.state}}</bold>!</h2>
         <p>{{location_dict.population|commanumber}} people live here.</p>
-        <p><bold>{{location_dict.check_ins}}</bold> users have checked in "foursquare-style".</p>
+        <p><bold>{{location_dict.check_ins}}</bold> users have checked in.</p>
+        <p> Here's what they have to say
+        <div class="container">
+            {% for comment in location_dict.comments %}
+            <div class="row">
+                <div class="col-sm">{{comment}}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        </p>
         <p> Would you like to Check in and leave a comment?
-            <form action="/location" method="post">
+            <form action="/location/{{location_dict.zip}}" method="post">
                 <div class="form-group">
                     <input autocomplete="off" autofocus class="form-control" name="comment" placeholder="Comment Optional" type="text"/>
                 </div>

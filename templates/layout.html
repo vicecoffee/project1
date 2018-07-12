@@ -10,9 +10,7 @@
 
         <!-- documentation at http://getbootstrap.com/docs/4.0/, alternative themes at https://bootswatch.com/4-alpha/ -->
         <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" rel="stylesheet"/>
-        <link rel="stylesheet" href="/project01bootstrap-4.0.0/dist/css/bootstrap.css"/>
-        <link href="/static/styles.css" rel="stylesheet"/>
-
+        <link href="/static/css.css" rel="stylesheet"/>
         <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js"></script>
@@ -32,7 +30,7 @@
                 {% if session.user_id %}
                     <ul class="navbar-nav ml-auto mt-2">
                         <li class="nav-item">
-                        <form action="/search_results" method="post">
+                        <form action="/search_results" method="get">
                             <div class="form-inline my-2 my-lg-0">
                                 <input autocomplete="off" autofocus class="form-control" name="search_input" placeholder="zipcode or town name" type="text"/>
                             <button class="btn btn-primary my-2 my-sm-0" type="submit">Search</button>

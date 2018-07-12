@@ -7,6 +7,7 @@ f= open("zips.csv")
 reader = csv.reader(f)
 #
 next(reader)
-# I tested the import with a dummy command and it populated until 318. I deleted those entries.
+# I tested it many times.  The primary key is very high. Also, added "0" for zipcodes that started with "0".
 for row in reader:
-	db.execute("INSERT INTO locations (zipcode, town, state, latitude, longitude, population) VALUES (:zipcode, :town, :state, :latitude, :longitude, :population)", zipcode=row[0], town=row[1], state=row[2], latitude=row[3], longitude=row[4], population=row[5])
+    zipcode= "{:05}".format(int(row[0]))
+    db.execute("INSERT INTO locations (zipcode, town, state, latitude, longitude, population) VALUES (:zipcode, :town, :state, :latitude, :longitude, :population)", zipcode=zipcode, town=row[1], state=row[2], latitude=row[3], longitude=row[4], population=row[5])

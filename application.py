@@ -1,13 +1,13 @@
 import os
 
-from flask import Flask, session, request, render_template, redirect
+from flask import Flask, session, request, render_template, redirect, jsonify
 from flask_session import Session
 from tempfile import mkdtemp
 from sqlalchemy import create_engine, Table, Column, Integer, String, ForeignKey, select
 from sqlalchemy.orm import scoped_session, sessionmaker
 from werkzeug.exceptions import default_exceptions
 from werkzeug.security import check_password_hash, generate_password_hash
-from helpers import apology, login_required, weather, time, commanumber, decimalpercent
+from helpers import apology, login_required, weather, get_comment, time, commanumber, decimalpercent
 import json
 
 app = Flask(__name__)
@@ -94,9 +94,13 @@ def register():
     else:
         return render_template("register.html")
 
-@app.route("/search_results", methods=["GET", "POST"])
+@app.route("/search_results")
+@login_required
 def search():
-    rows = db.execute("SELECT * FROM locations WHERE town = :search_input OR zipcode = :search_input", {"search_input":request.form.get("search_input")}).fetchall()
+    fuzzy_input = "%{}%".format(request.args.get("search_input"))
+    rows = db.execute("SELECT * FROM locations WHERE UPPER(town) like UPPER(:search_input) OR zipcode like :search_input", {"search_input":fuzzy_input}).fetchall()
+    if len(rows) < 1:
+        return apology("Sorry. We don't have information on towns with populations smaller than 15,000")
     search_results_list =[]
     for row in rows:
         town = row["town"]
@@ -154,32 +158,38 @@ def logout():
     return redirect("/")
 
 @app.route("/location/<string:zipcode>", methods=["GET", "POST"])
-# @login_required
+@login_required
 def location(zipcode):
     # User reached route via POST
     if request.method == "POST":
         # Same as "GET: table for location info & darksky BUT disable FORMS
         # Write SQL commands to add checkin to db
-        return render_template("location.html")
+        # Insert comment into db
+        # Ensure username is unique
+        rows = db.execute("SELECT * FROM users WHERE user_id = :user_id", {"user_id":session["user_id"]}).fetchall()
+        if len(rows) >= 1:
+            return apology("Sorry:  One comment per user.", 400)
+        db.execute("INSERT INTO checkins (user_id, loc_id, comment) VALUES (:user_id, :loc_id, :comment)",{ "user_id":session["user_id"], "loc_id":location_info["loc_id"], "comment":(request.form.get("comment"))})
+        db.commit()
+        return redirect("/location/{}".format(zipcode))
 
     if request.method == "GET":
-        # TO DISPLAY INFO & FORMS
         # Pull info from location table insert in HTML
-        # Don't forget to make a form for checkin
         # Pull info from Darksky insert in HTML
-
+        loc_dict = get_zipcode_weather(zipcode)
         return render_template("location.html",location_dict = get_zipcode_weather(zipcode))
 
 # Added the json dumps here to reformat the weather into a string
 @app.route("/api/<string:zipcode>")
 def api(zipcode):
-    return json.dumps(get_zipcode_weather(zipcode), indent = 2)
+    return jsonify(get_zipcode_weather(zipcode))
 
 
 def get_zipcode_weather(zipcode):
     # Pull info from Darksky insert in HTML
     row = db.execute("SELECT locations.*, COUNT(user_id) as checkin_count FROM locations LEFT JOIN checkins on locations.loc_id=checkins.loc_id WHERE zipcode=:zipcode GROUP by locations.loc_id", {"zipcode": zipcode}).fetchone()
     return{
+        "loc_id": row["loc_id"],
         "place_name": row["town"],
         "state": row["state"],
         "latitude": row["latitude"],
@@ -187,6 +197,8 @@ def get_zipcode_weather(zipcode):
         "zip": row["zipcode"],
         "population": row["population"],
         "check_ins": row["checkin_count"],
-        "weather":weather(row["latitude"], row["longitude"])
-
+        "weather":weather(row["latitude"], row["longitude"]),
+        "comments":get_comment(row["zipcode"])
     }
+
+

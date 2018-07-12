@@ -7,7 +7,9 @@
 {% block main %}
     <p>
     {% for location in list %}
+        <div>
         <a href="/location/{{location.zipcode}}">{{location.town}}, {{location.state}} {{location.zipcode}}</a>
+        </div>
         {% endfor %}
     </p>
 {% endblock %}

@@ -3,11 +3,18 @@ import csv
 import os
 import urllib.request
 import requests, json
+from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
 from time import localtime, asctime
 
 from flask import redirect, render_template, request, session
 from functools import wraps
 
+# Set up database
+engine = create_engine(os.getenv("DATABASE_URL"))
+db = scoped_session(sessionmaker(bind=engine))
+
+# taken from CS50 Spring 2018 pset 7  temporary123
 
 def apology(message, code=400):
     """Render message as an apology to user."""
@@ -54,6 +61,14 @@ def weather(latitude, longtiude):
     api_url = make_darksky_url(latitude, longtiude)
     local_weather = requests.get(api_url).json()
     return (local_weather["currently"])
+
+def get_comment(zipcode):
+    comment_list = []
+    rows = db.execute("SELECT checkins.comment FROM checkins INNER JOIN locations ON checkins.loc_id=locations.loc_id WHERE zipcode=:zipcode",{"zipcode": zipcode}).fetchall()
+    for row in rows:
+        words = row["comment"]
+        comment_list.append(words)
+    return comment_list
 
 # Changes the DarkSky epoch time to regular time
 # https://docs.python.org/3/library/time.html
