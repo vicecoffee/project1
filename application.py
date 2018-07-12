@@ -45,72 +45,55 @@ app.jinja_env.filters["decimalpercent"] = decimalpercent
 def index():
     return render_template("index.html")
 
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    # Forget any user_id
-    session.clear()
+# Added the json dumps here to re-format the weather into a string
+@app.route("/api/<string:zipcode>")
+def api(zipcode):
+    return jsonify(get_zipcode_weather(zipcode))
 
+
+def get_zipcode_weather(zipcode):
+    # Pull info from Darksky insert in HTML
+    row = db.execute("SELECT locations.*, COUNT(user_id) as checkin_count FROM locations LEFT JOIN checkins on locations.loc_id=checkins.loc_id WHERE zipcode=:zipcode GROUP by locations.loc_id",
+          {"zipcode": zipcode}).fetchone()
+    return{
+        "loc_id": row["loc_id"],
+        "place_name": row["town"],
+        "state": row["state"],
+        "latitude": row["latitude"],
+        "longitude": row["longitude"],
+        "zip": row["zipcode"],
+        "population": row["population"],
+        "check_ins": row["checkin_count"],
+        "weather":weather(row["latitude"], row["longitude"]),
+        "comments":get_comment(row["zipcode"])
+    }
+
+
+@app.route("/location/<string:zipcode>", methods=["GET", "POST"])
+@login_required
+def location(zipcode):
+    loc_dict = get_zipcode_weather(zipcode)
     # User reached route via POST
     if request.method == "POST":
-
-        # Ensure username was submitted
-        if not request.form.get("user_name"):
-            return apology("must provide username", 400)
-
-        # Query database for username
-        #select_st = table.select().where(table.c.user_name == 'John123')
-        #res = conn.execute)select_st)
-        #for _row in res:
-            #print(_row)
-
-        rows = db.execute("SELECT * FROM users WHERE user_name = :user_name", {"user_name":request.form.get("user_name")}).fetchall()
-
-        # Ensure username is unique
+        # I thought about making checkin a boolean and abstracting it away.  It could then disable the button in the html
+        # much easier.  I didn't have time.
+        rows = db.execute("SELECT * FROM checkins WHERE user_id = :user_id AND loc_id=:loc_id",
+               {"user_id":session["user_id"], "loc_id":loc_dict["loc_id"]}).fetchall()
         if len(rows) >= 1:
-            return apology("username already exists", 400)
-
-        # Ensure password was submitted
-        if not request.form.get("password"):
-            return apology("must provide password", 400)
-
-        # Ensure password and confirmation match
-        if request.form.get("confirmation") != request.form.get("password"):
-            return apology("must match password and confirm", 400)
-
-        # Insert username into db
-        db.execute("INSERT INTO users (user_name, real_name, hash) VALUES (:user_name, :real_name, :hashword)",
-                   {"user_name":request.form.get("user_name"), "real_name":request.form.get("real_name"), "hashword":generate_password_hash(request.form.get("password"))})
+            return apology("Sorry:  One checkin per user.", 400)
+        db.execute("INSERT INTO checkins (user_id, loc_id, comment) VALUES (:user_id, :loc_id, :comment)",
+                  { "user_id":session["user_id"], "loc_id":loc_dict["loc_id"], "comment":(request.form.get("comment"))})
         db.commit()
-        # Get user info for new user
-        rows = db.execute("SELECT * FROM users WHERE user_name = :user_name", {"user_name":request.form.get("user_name")}).fetchall()
+        return redirect("/location/{}".format(zipcode))
 
-        # Log in user automatically.  Store id in session
-        session["user_id"] = rows[0]["user_id"]
+    if request.method == "GET":
+        # Pull info from location table insert in HTML
+        # Pull info from Darksky insert in HTML
+        loc_dict = get_zipcode_weather(zipcode)
+        return render_template("location.html",location_dict = get_zipcode_weather(zipcode))
 
-        # Redirect user to home page
-        return redirect("/")
 
-    # User reached route via GET (as by clicking a link or via redirect)
-    else:
-        return render_template("register.html")
-
-@app.route("/search_results")
-@login_required
-def search():
-    fuzzy_input = "%{}%".format(request.args.get("search_input"))
-    rows = db.execute("SELECT * FROM locations WHERE UPPER(town) like UPPER(:search_input) OR zipcode like :search_input", {"search_input":fuzzy_input}).fetchall()
-    if len(rows) < 1:
-        return apology("Sorry. We don't have information on towns with populations smaller than 15,000")
-    search_results_list =[]
-    for row in rows:
-        town = row["town"]
-        state = row["state"]
-        zipcode = row["zipcode"]
-        town_state = {"town" :town, "state" :state, "zipcode" :zipcode}
-        search_results_list.append(town_state)
-
-    return render_template("search_results.html", list=search_results_list)
-
+# I copied this from CS50 Spring 2018 pset 7
 @app.route("/login", methods=["GET", "POST"])
 def login():
     # Forget any user_id
@@ -148,6 +131,7 @@ def login():
     else:
         return render_template("login.html")
 
+# I copied this from CS50 Spring 2018 pset 7
 @app.route("/logout")
 def logout():
     # From pset7 of CS50
@@ -157,48 +141,66 @@ def logout():
     # Redirect user to login form
     return redirect("/")
 
-@app.route("/location/<string:zipcode>", methods=["GET", "POST"])
-@login_required
-def location(zipcode):
+# I copied this from CS50 Spring 2018 pset 7
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    # Forget any user_id
+    session.clear()
+
     # User reached route via POST
     if request.method == "POST":
-        # Same as "GET: table for location info & darksky BUT disable FORMS
-        # Write SQL commands to add checkin to db
-        # Insert comment into db
+
+        # Ensure username was submitted
+        if not request.form.get("user_name"):
+            return apology("must provide username", 400)
+
+        rows = db.execute("SELECT * FROM users WHERE user_name = :user_name", {"user_name":request.form.get("user_name")}).fetchall()
+
         # Ensure username is unique
-        rows = db.execute("SELECT * FROM users WHERE user_id = :user_id", {"user_id":session["user_id"]}).fetchall()
         if len(rows) >= 1:
-            return apology("Sorry:  One comment per user.", 400)
-        db.execute("INSERT INTO checkins (user_id, loc_id, comment) VALUES (:user_id, :loc_id, :comment)",{ "user_id":session["user_id"], "loc_id":location_info["loc_id"], "comment":(request.form.get("comment"))})
+            return apology("username already exists", 400)
+
+        # Ensure password was submitted
+        if not request.form.get("password"):
+            return apology("must provide password", 400)
+
+        # Ensure password and confirmation match
+        if request.form.get("confirmation") != request.form.get("password"):
+            return apology("must match password and confirm", 400)
+
+        # Insert username into db
+        db.execute("INSERT INTO users (user_name, real_name, hash) VALUES (:user_name, :real_name, :hashword)",
+                   {"user_name":request.form.get("user_name"), "real_name":request.form.get("real_name"),
+                   "hashword":generate_password_hash(request.form.get("password"))})
         db.commit()
-        return redirect("/location/{}".format(zipcode))
+        # Get user info for new user
+        rows = db.execute("SELECT * FROM users WHERE user_name = :user_name", {"user_name":request.form.get("user_name")}).fetchall()
 
-    if request.method == "GET":
-        # Pull info from location table insert in HTML
-        # Pull info from Darksky insert in HTML
-        loc_dict = get_zipcode_weather(zipcode)
-        return render_template("location.html",location_dict = get_zipcode_weather(zipcode))
+        # Log in user automatically.  Store id in session
+        session["user_id"] = rows[0]["user_id"]
 
-# Added the json dumps here to reformat the weather into a string
-@app.route("/api/<string:zipcode>")
-def api(zipcode):
-    return jsonify(get_zipcode_weather(zipcode))
+        # Redirect user to home page
+        return redirect("/")
 
+    # User reached route via GET (as by clicking a link or via redirect)
+    else:
+        return render_template("register.html")
 
-def get_zipcode_weather(zipcode):
-    # Pull info from Darksky insert in HTML
-    row = db.execute("SELECT locations.*, COUNT(user_id) as checkin_count FROM locations LEFT JOIN checkins on locations.loc_id=checkins.loc_id WHERE zipcode=:zipcode GROUP by locations.loc_id", {"zipcode": zipcode}).fetchone()
-    return{
-        "loc_id": row["loc_id"],
-        "place_name": row["town"],
-        "state": row["state"],
-        "latitude": row["latitude"],
-        "longitude": row["longitude"],
-        "zip": row["zipcode"],
-        "population": row["population"],
-        "check_ins": row["checkin_count"],
-        "weather":weather(row["latitude"], row["longitude"]),
-        "comments":get_comment(row["zipcode"])
-    }
+@app.route("/search_results")
+@login_required
+def search():
+    fuzzy_input = "%{}%".format(request.args.get("search_input"))
+    rows = db.execute("SELECT * FROM locations WHERE UPPER(town) like UPPER(:search_input) OR zipcode like :search_input LIMIT 30",
+           {"search_input":fuzzy_input}).fetchall()
+    if len(rows) < 1:
+        return apology("Sorry. We don't have information on towns with populations smaller than 15,000")
+    search_results_list =[]
+    for row in rows:
+        town = row["town"]
+        state = row["state"]
+        zipcode = row["zipcode"]
+        town_state = {"town" :town, "state" :state, "zipcode" :zipcode}
+        search_results_list.append(town_state)
 
+    return render_template("search_results.html", list=search_results_list)
 

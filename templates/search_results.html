@@ -6,10 +6,16 @@
 
 {% block main %}
     <p>
+        <h3>Top Search Results</h3>
     {% for location in list %}
         <div>
         <a href="/location/{{location.zipcode}}">{{location.town}}, {{location.state}} {{location.zipcode}}</a>
         </div>
         {% endfor %}
+        <br>
+        <footer>
+            Can't find what you're looking for?
+            Trying including more information in your search query.
+        </footer>
     </p>
 {% endblock %}
